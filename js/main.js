@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultContainer = document.querySelector(".result");
   const pieChart = document.getElementById("pie-chart");
   const legend = document.getElementById("legend");
+  const downloadButton = document.getElementById("download-button");
 
   addDataButton.addEventListener("click", () => {
     dataCount++;
@@ -45,19 +46,31 @@ document.addEventListener("DOMContentLoaded", () => {
     legend.innerHTML = '';
 
     data.forEach((item, index) => {
-      const sliceAngle = (item.value / total) * 2 * Math.PI;
-      const x1 = (16 + 16 * Math.cos(startAngle)).toFixed(2);
-      const y1 = (16 + 16 * Math.sin(startAngle)).toFixed(2);
-      const x2 = (16 + 16 * Math.cos(startAngle + sliceAngle)).toFixed(2);
-      const y2 = (16 + 16 * Math.sin(startAngle + sliceAngle)).toFixed(2);
-      const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+      if (data.length == 1) {
+        // Special case for a single data point
+        pathData = `
+          M 16,16
+          m -16,0
+          a 16,16 0 1,0 32,0
+          a 16,16 0 1,0 -32,0
+        `;
+      } else {
+        const sliceAngle = (item.value / total) * 2 * Math.PI;
+        const x1 = (16 + 16 * Math.cos(startAngle)).toFixed(2);
+        const y1 = (16 + 16 * Math.sin(startAngle)).toFixed(2);
+        const x2 = (16 + 16 * Math.cos(startAngle + sliceAngle)).toFixed(2);
+        const y2 = (16 + 16 * Math.sin(startAngle + sliceAngle)).toFixed(2);
+        const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
 
-      const pathData = `
-        M 16,16
-        L ${x1},${y1}
-        A 16,16 0 ${largeArcFlag} 1 ${x2},${y2}
-        Z
-      `;
+        pathData = `
+          M 16,16
+          L ${x1},${y1}
+          A 16,16 0 ${largeArcFlag} 1 ${x2},${y2}
+          Z
+        `;
+        
+        startAngle += sliceAngle;
+      }
 
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", pathData);
@@ -74,10 +87,20 @@ document.addEventListener("DOMContentLoaded", () => {
         ${item.label} : ${(item.value/total*100).toFixed(1)}%
       `;
       legend.appendChild(legendItem);
-
-      startAngle += sliceAngle;
     });
 
     resultContainer.style.display = 'flex';
   }
+
+  downloadButton.addEventListener("click", () => {
+    const svgData = new XMLSerializer().serializeToString(pieChart);
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = "pie_chart.svg";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  });
 });
